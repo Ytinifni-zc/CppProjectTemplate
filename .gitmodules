@@ -1,0 +1,9 @@
+[submodule "contrib/ips4o"]
+	path = contrib/ips4o
+	url = https://github.com/SaschaWitt/ips4o
+[submodule "contrib/googletest"]
+	path = contrib/googletest
+	url = https://github.com/google/googletest
+[submodule "contrib/spdlog"]
+	path = contrib/spdlog
+	url = https://github.com/gabime/spdlog.git
