@@ -1,4 +1,4 @@
-# GraphRepo
+# CppProjectTemplate
 
 ## Usage
 Change project name at the directory and the CMakeLists's `project(CppProjectTemplate)`.
@@ -15,5 +15,4 @@ make -j or ninja
 cd build
 ./test/GenRandArray # A random array generator to generator 100,000,000 random integers
 ./test/PSort # Test __gnu_parallel::sort and ips4o::parallel::sort
-```
 
