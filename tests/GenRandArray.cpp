@@ -10,12 +10,12 @@
 #include <fstream>
 #include <random>
 
-#include <spdlog/spdlog.h>
+#include <utils/Log.h>
 
 auto&& exeCmd(const std::string& cmd) {
     auto fp = popen(cmd.data(), "r");
     if (!fp) {
-        spdlog::error("Error commend: {}", cmd);
+        LOG::error("Error commend: {}", cmd);
         exit(1);
     }
     char line[1024];

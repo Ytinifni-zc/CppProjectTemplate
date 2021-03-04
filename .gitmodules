@@ -7,3 +7,6 @@
 [submodule "contrib/spdlog"]
 	path = contrib/spdlog
 	url = https://github.com/gabime/spdlog.git
+[submodule "contrib/fmt"]
+	path = contrib/fmt
+	url = https://github.com/fmtlib/fmt

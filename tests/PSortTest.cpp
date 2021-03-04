@@ -9,9 +9,10 @@
 #include <utils/StopWatch.h>
 #include <utils/Gang.h>
 #include <utils/Monitor.h>
+#include <utils/Log.h>
 
 #include "gtest/gtest.h"
-#include <spdlog/spdlog.h>
+
 
 TEST(PSort, GNU_Sort) {
     auto mInitialPeakRss = getPeakRSS();
@@ -23,18 +24,18 @@ TEST(PSort, GNU_Sort) {
     GangUtil gu;
     gu.submit(data.size(), [&](UInt32 i) {data[i] = addr[i];});
     munmap_file(addr, length);
-    spdlog::info("Copy using: {:.2f}ms", w.elapsedSeconds());
+    LOG::info("Copy using: {:.2f}ms", w.elapsedSeconds());
     w.restart();
 
     __gnu_parallel::sort(data.begin(), data.end());
-    spdlog::info("GNU Parallel sort using: {:.2f}ms", w.elapsedSeconds());
+    LOG::info("GNU Parallel sort using: {:.2f}ms", w.elapsedSeconds());
     auto peakRss = getPeakRSS();
     if (peakRss > mInitialPeakRss) {
         peakRss -= mInitialPeakRss;
     } else {
         peakRss = 0;
     }
-    spdlog::info("Peak Memory = {:.1f}MB", peakRss / 1048576.0);
+    LOG::info("Peak Memory = {:.1f}MB", peakRss / 1048576.0);
 }
 
 TEST(PSort, ips4o_Sort) {
@@ -47,16 +48,16 @@ TEST(PSort, ips4o_Sort) {
     GangUtil gu;
     gu.submit(data.size(), [&](UInt32 i) {data[i] = addr[i];});
     munmap_file(addr, length);
-    spdlog::info("Copy using: {:.2f}ms", w.elapsedSeconds());
+    LOG::info("Copy using: {:.2f}ms", w.elapsedSeconds());
     w.restart();
 
     ips4o::parallel::sort(data.begin(), data.end());
-    spdlog::info("IPS4o Parallel sort using: {:.2f}ms", w.elapsedSeconds());
+    LOG::info("IPS4o Parallel sort using: {:.2f}ms", w.elapsedSeconds());
     auto peakRss = getPeakRSS();
     if (peakRss > mInitialPeakRss) {
         peakRss -= mInitialPeakRss;
     } else {
         peakRss = 0;
     }
-    spdlog::info("Peak Memory = {:.1f}MB", peakRss / 1048576.0);
+    LOG::info("Peak Memory = {:.1f}MB", peakRss / 1048576.0);
 }

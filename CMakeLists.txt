@@ -16,7 +16,11 @@ if (CMAKE_GENERATOR STREQUAL "Ninja")
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdiagnostics-color=always")
 endif ()
 
-add_subdirectory(tests)
 add_subdirectory(contrib)
+if(NOT TARGET spdlog)
+    # Stand-alone build
+    find_package(spdlog REQUIRED)
+endif()
 add_subdirectory(utils)
+add_subdirectory(tests)
 
