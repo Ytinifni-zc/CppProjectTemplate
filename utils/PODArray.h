@@ -18,14 +18,15 @@
 #define MAY_ALIAS __attribute__((__may_alias__))
 
 #ifdef __SSE2__
+
 #include <emmintrin.h>
 
 namespace detail {
     inline void memcpySmallAllowReadWriteOverflow15Impl(
-            char* __restrict dst, const char* __restrict src, ssize_t n) {
+            char *__restrict dst, const char *__restrict src, ssize_t n) {
         while (n > 0) {
-            _mm_storeu_si128(reinterpret_cast<__m128i*>(dst),
-                             _mm_loadu_si128(reinterpret_cast<const __m128i*>(src)));
+            _mm_storeu_si128(reinterpret_cast<__m128i *>(dst),
+                             _mm_loadu_si128(reinterpret_cast<const __m128i *>(src)));
 
             dst += 16;
             src += 16;
@@ -35,9 +36,9 @@ namespace detail {
 }
 
 inline void memcpySmallAllowReadWriteOverflow15(
-        void* __restrict dst, const void* __restrict src, size_t n) {
+        void *__restrict dst, const void *__restrict src, size_t n) {
     detail::memcpySmallAllowReadWriteOverflow15Impl(
-            reinterpret_cast<char*>(dst), reinterpret_cast<const char*>(src), n);
+            reinterpret_cast<char *>(dst), reinterpret_cast<const char *>(src), n);
 }
 
 #else /// Implementation for other platforms.
@@ -67,9 +68,9 @@ inline constexpr size_t roundUpToPowerOfTwoOrZero(size_t n) {
 }
 
 static constexpr size_t EmptyPODArraySize = 1024;
-const char EmptyPODArray[EmptyPODArraySize]{};
+extern const char EmptyPODArray[EmptyPODArraySize];
 
-template <size_t ELEMENT_SIZE, size_t INITIAL_SIZE, size_t pad_right_, size_t pad_left_>
+template<size_t ELEMENT_SIZE, size_t INITIAL_SIZE, size_t pad_right_, size_t pad_left_>
 class PODArrayBase {
 protected:
     /// Round padding up to an whole number of elements to simplify arithmetic.
@@ -77,15 +78,15 @@ protected:
     /// pad_left is also rounded up to 16 bytes to maintain alignment of allocated memory.
     static constexpr size_t pad_left = integerRoundUp(integerRoundUp(pad_left_, ELEMENT_SIZE), 16);
     /// Empty array will point to this static memory as padding.
-    static constexpr char* null
-            = pad_left ? const_cast<char*>(EmptyPODArray) + EmptyPODArraySize : nullptr;
+    static constexpr char *null
+            = pad_left ? const_cast<char *>(EmptyPODArray) + EmptyPODArraySize : nullptr;
 
     static_assert(pad_left <= EmptyPODArraySize
                   && "Left Padding exceeds EmptyPODArraySize. Is the element size too large?");
 
-    char* c_start = null; /// Does not include pad_left.
-    char* c_end = null;
-    char* c_end_of_storage = null; /// Does not include pad_right.
+    char *c_start = null; /// Does not include pad_left.
+    char *c_end = null;
+    char *c_end_of_storage = null; /// Does not include pad_right.
     int socket_id{};
 
     /// The amount of memory occupied by the num_elements of the elements.
@@ -103,7 +104,7 @@ protected:
     void alloc(size_t bytes) {
         auto x
                 = socket_id == -1 ? numa_alloc_interleaved(bytes) : numa_alloc_onnode(bytes, socket_id);
-        c_start = c_end = reinterpret_cast<char*>(x) + pad_left;
+        c_start = c_end = reinterpret_cast<char *>(x) + pad_left;
         c_end_of_storage = c_start + bytes - pad_right - pad_left;
 
         if (pad_left)
@@ -124,7 +125,7 @@ protected:
         }
         ptrdiff_t end_diff = c_end - c_start;
         c_start
-                = reinterpret_cast<char*>(numa_realloc(c_start - pad_left, allocated_bytes(), bytes))
+                = reinterpret_cast<char *>(numa_realloc(c_start - pad_left, allocated_bytes(), bytes))
                   + pad_left;
         c_end = c_start + end_diff;
         c_end_of_storage = c_start + bytes - pad_right - pad_left;
@@ -147,12 +148,16 @@ public:
     PODArrayBase(int socket_id = -1)
         : socket_id(socket_id) {}
 #else
+
     PODArrayBase(int socket_id = -1)
             : socket_id(-1) {}
+
 #endif
 
     bool empty() const { return c_end == c_start; }
+
     size_t size() const { return (c_end - c_start) / ELEMENT_SIZE; }
+
     size_t capacity() const { return (c_end_of_storage - c_start) / ELEMENT_SIZE; }
 
     size_t allocated_bytes() const { return c_end_of_storage - c_start + pad_right + pad_left; }
@@ -171,9 +176,9 @@ public:
 
     void resize_assume_reserved(const size_t n) { c_end = c_start + byte_size(n); }
 
-    const char* raw_data() const { return c_start; }
+    const char *raw_data() const { return c_start; }
 
-    void push_back_raw(const char* ptr) {
+    void push_back_raw(const char *ptr) {
         if (unlikely(c_end == c_end_of_storage))
             reserveForNextSize();
         memcpy(c_end, ptr, ELEMENT_SIZE);
@@ -183,26 +188,30 @@ public:
     ~PODArrayBase() { dealloc(); }
 };
 
-template <typename T, size_t INITIAL_SIZE = 4096, size_t pad_right_ = 0, size_t pad_left_ = 0>
+template<typename T, size_t INITIAL_SIZE = 4096, size_t pad_right_ = 0, size_t pad_left_ = 0>
 class PODArray : public PODArrayBase<sizeof(T), INITIAL_SIZE, pad_right_, pad_left_> {
 protected:
     using Base = PODArrayBase<sizeof(T), INITIAL_SIZE, pad_right_, pad_left_>;
 
-    T* t_start() { return reinterpret_cast<T*>(this->c_start); }
-    T* t_end() { return reinterpret_cast<T*>(this->c_end); }
-    T* t_end_of_storage() { return reinterpret_cast<T*>(this->c_end_of_storage); }
+    T *t_start() { return reinterpret_cast<T *>(this->c_start); }
 
-    const T* t_start() const { return reinterpret_cast<const T*>(this->c_start); }
-    const T* t_end() const { return reinterpret_cast<const T*>(this->c_end); }
-    const T* t_end_of_storage() const { return reinterpret_cast<const T*>(this->c_end_of_storage); }
+    T *t_end() { return reinterpret_cast<T *>(this->c_end); }
+
+    T *t_end_of_storage() { return reinterpret_cast<T *>(this->c_end_of_storage); }
+
+    const T *t_start() const { return reinterpret_cast<const T *>(this->c_start); }
+
+    const T *t_end() const { return reinterpret_cast<const T *>(this->c_end); }
+
+    const T *t_end_of_storage() const { return reinterpret_cast<const T *>(this->c_end_of_storage); }
 
 public:
     using value_type = T;
 
     /// You can not just use `typedef`, because there is ambiguity for the constructors and `assign`
     /// functions.
-    using iterator = T*;
-    using const_iterator = const T*;
+    using iterator = T *;
+    using const_iterator = const T *;
 
     PODArray(int socket_id = -1)
             : Base(socket_id) {}
@@ -221,30 +230,48 @@ public:
     PODArray(std::initializer_list<T> il)
             : PODArray(std::begin(il), std::end(il)) {}
 
-    PODArray(PODArray&& other) { this->swap(other); }
+    PODArray(PODArray &&other) { this->swap(other); }
 
-    PODArray& operator=(PODArray&& other) {
+    PODArray &operator=(PODArray &&other) {
         this->swap(other);
         return *this;
     }
 
-    T* data() { return t_start(); }
-    const T* data() const { return t_start(); }
+    PODArray clone() const {
+        PODArray ret(this->size(), -1);
+        ret.assign(*this);
+        if (ret.size())
+            ret[-1] = (*this)[-1];
+        return ret;
+    }
+
+    T *data() { return t_start(); }
+
+    const T *data() const { return t_start(); }
 
     /// The index is signed to access -1th element without pointer overflow.
-    T& operator[](ssize_t n) { return t_start()[n]; }
-    const T& operator[](ssize_t n) const { return t_start()[n]; }
+    T &operator[](ssize_t n) { return t_start()[n]; }
 
-    T& front() { return t_start()[0]; }
-    T& back() { return t_end()[-1]; }
-    const T& front() const { return t_start()[0]; }
-    const T& back() const { return t_end()[-1]; }
+    const T &operator[](ssize_t n) const { return t_start()[n]; }
+
+    T &front() { return t_start()[0]; }
+
+    T &back() { return t_end()[-1]; }
+
+    const T &front() const { return t_start()[0]; }
+
+    const T &back() const { return t_end()[-1]; }
 
     iterator begin() { return t_start(); }
+
     iterator end() { return t_end(); }
+
     const_iterator begin() const { return t_start(); }
+
     const_iterator end() const { return t_end(); }
+
     const_iterator cbegin() const { return t_start(); }
+
     const_iterator cend() const { return t_end(); }
 
     /// Same as resize, but zeroes new elements.
@@ -257,7 +284,7 @@ public:
         this->c_end = this->c_start + this->byte_size(n);
     }
 
-    void resize_fill(size_t n, const T& value) {
+    void resize_fill(size_t n, const T &value) {
         size_t old_size = this->size();
         if (n > old_size) {
             this->reserve(n);
@@ -266,19 +293,21 @@ public:
         this->c_end = this->c_start + this->byte_size(n);
     }
 
-    template <typename U> void push_back(U&& x) {
+    template<typename U>
+    void push_back(U &&x) {
         if (unlikely(this->c_end == this->c_end_of_storage))
             this->reserveForNextSize();
 
-        new (t_end()) T(std::forward<U>(x));
+        new(t_end()) T(std::forward<U>(x));
         this->c_end += this->byte_size(1);
     }
 
-    template <typename... Args> void emplace_back(Args&&... args) {
+    template<typename... Args>
+    void emplace_back(Args &&... args) {
         if (unlikely(this->c_end == this->c_end_of_storage))
             this->reserveForNextSize();
 
-        new (t_end()) T(std::forward<Args>(args)...);
+        new(t_end()) T(std::forward<Args>(args)...);
         this->c_end += this->byte_size(1);
     }
 
@@ -286,7 +315,8 @@ public:
 
     /// Do not insert into the array a piece of itself. Because with the resize, the iterators on
     /// themselves can be invalidated.
-    template <typename It1, typename It2> void insertPrepare(It1 from_begin, It2 from_end) {
+    template<typename It1, typename It2>
+    void insertPrepare(It1 from_begin, It2 from_end) {
         size_t required_capacity = this->size() + (from_end - from_begin);
         if (required_capacity > this->capacity())
             this->reserve(roundUpToPowerOfTwoOrZero(required_capacity));
@@ -294,24 +324,26 @@ public:
 
     /// Do not insert into the array a piece of itself. Because with the resize, the iterators on
     /// themselves can be invalidated.
-    template <typename It1, typename It2> void insert(It1 from_begin, It2 from_end) {
+    template<typename It1, typename It2>
+    void insert(It1 from_begin, It2 from_end) {
         insertPrepare(from_begin, from_end);
         insert_assume_reserved(from_begin, from_end);
     }
 
     /// Works under assumption, that it's possible to read up to 15 excessive bytes after `from_end`
     /// and this PODArray is padded.
-    template <typename It1, typename It2>
+    template<typename It1, typename It2>
     void insertSmallAllowReadWriteOverflow15(It1 from_begin, It2 from_end) {
         static_assert(pad_right_ >= 15);
         insertPrepare(from_begin, from_end);
         size_t bytes_to_copy = this->byte_size(from_end - from_begin);
         memcpySmallAllowReadWriteOverflow15(
-                this->c_end, reinterpret_cast<const void*>(&*from_begin), bytes_to_copy);
+                this->c_end, reinterpret_cast<const void *>(&*from_begin), bytes_to_copy);
         this->c_end += bytes_to_copy;
     }
 
-    template <typename It1, typename It2> void insert(iterator it, It1 from_begin, It2 from_end) {
+    template<typename It1, typename It2>
+    void insert(iterator it, It1 from_begin, It2 from_end) {
         insertPrepare(from_begin, from_end);
 
         size_t bytes_to_copy = this->byte_size(from_end - from_begin);
@@ -321,47 +353,49 @@ public:
             memcpy(this->c_end + bytes_to_copy - bytes_to_move, this->c_end - bytes_to_move,
                    bytes_to_move);
 
-        memcpy(this->c_end - bytes_to_move, reinterpret_cast<const void*>(&*from_begin),
+        memcpy(this->c_end - bytes_to_move, reinterpret_cast<const void *>(&*from_begin),
                bytes_to_copy);
         this->c_end += bytes_to_copy;
     }
 
-    template <typename It1, typename It2>
+    template<typename It1, typename It2>
     void insert_assume_reserved(It1 from_begin, It2 from_end) {
         size_t bytes_to_copy = this->byte_size(from_end - from_begin);
-        memcpy(this->c_end, reinterpret_cast<const void*>(&*from_begin), bytes_to_copy);
+        memcpy(this->c_end, reinterpret_cast<const void *>(&*from_begin), bytes_to_copy);
         this->c_end += bytes_to_copy;
     }
 
-    void swap(PODArray& rhs) {
+    void swap(PODArray &rhs) {
         std::swap(this->socket_id, rhs.socket_id);
         if (!this->isInitialized() && !rhs.isInitialized())
             return;
-        else if (!this->isInitialized() && rhs.isInitialized()) {
+//        else if (!this->isInitialized() && rhs.isInitialized()) {
+        else {
             std::swap(this->c_start, rhs.c_start);
             std::swap(this->c_end, rhs.c_end);
             std::swap(this->c_end_of_storage, rhs.c_end_of_storage);
         }
     }
 
-    void assign(size_t n, const T& x) {
+    void assign(size_t n, const T &x) {
         this->resize(n);
         std::fill(begin(), end(), x);
     }
 
-    template <typename It1, typename It2> void assign(It1 from_begin, It2 from_end) {
+    template<typename It1, typename It2>
+    void assign(It1 from_begin, It2 from_end) {
         size_t required_capacity = from_end - from_begin;
         if (required_capacity > this->capacity())
             this->reserve(roundUpToPowerOfTwoOrZero(required_capacity));
 
         size_t bytes_to_copy = this->byte_size(required_capacity);
-        memcpy(this->c_start, reinterpret_cast<const void*>(&*from_begin), bytes_to_copy);
+        memcpy(this->c_start, reinterpret_cast<const void *>(&*from_begin), bytes_to_copy);
         this->c_end = this->c_start + bytes_to_copy;
     }
 
-    void assign(const PODArray& from) { assign(from.begin(), from.end()); }
+    void assign(const PODArray &from) { assign(from.begin(), from.end()); }
 
-    bool operator==(const PODArray& other) const {
+    bool operator==(const PODArray &other) const {
         if (this->size() != other.size())
             return false;
 
@@ -379,16 +413,16 @@ public:
         return true;
     }
 
-    bool operator!=(const PODArray& other) const { return !operator==(other); }
+    bool operator!=(const PODArray &other) const { return !operator==(other); }
 };
 
-template <typename T, size_t INITIAL_SIZE, size_t pad_right_>
-void swap(PODArray<T, INITIAL_SIZE, pad_right_>& lhs, PODArray<T, INITIAL_SIZE, pad_right_>& rhs) {
+template<typename T, size_t INITIAL_SIZE, size_t pad_right_>
+void swap(PODArray<T, INITIAL_SIZE, pad_right_> &lhs, PODArray<T, INITIAL_SIZE, pad_right_> &rhs) {
     lhs.swap(rhs);
 }
 
 /** For columns. Padding is enough to read and write xmm-register at the address of the last
  * element. */
-template <typename T, size_t INITIAL_SIZE = 4096> using Vector = PODArray<T, INITIAL_SIZE, 15, 16>;
+template<typename T, size_t INITIAL_SIZE = 4096> using Vector = PODArray<T, INITIAL_SIZE, 15, 16>;
 
 #endif //KALEIDO_PODARRAY_H

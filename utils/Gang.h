@@ -18,6 +18,40 @@
 
 template <typename... T> struct dependent_false { static constexpr bool value = false; };
 
+template<typename _Tp>
+using _Val = std::remove_volatile_t<_Tp>;
+
+template<typename _Tp>
+_GLIBCXX_ALWAYS_INLINE bool
+compare_exchange_weak(_Tp* __ptr, _Val<_Tp>& __expected,
+                      _Val<_Tp> __desired) noexcept
+{
+    return __atomic_compare_exchange(__ptr, std::__addressof(__expected),
+                                     std::__addressof(__desired), true,
+                                     int(std::memory_order_seq_cst), int(std::memory_order_relaxed));
+}
+
+static void writeAddFloat(Float32* f, _Val<Float32> v){
+    alignas(Float32) unsigned char __buf[sizeof(Float32)];
+    auto* __dest = reinterpret_cast<_Val<Float32>*>(__buf);
+    __atomic_load(f, __dest, int(std::memory_order_relaxed));
+    _Val<Float32> __oldval = *__dest;
+    _Val<Float32> __newval = __oldval + v;
+    while (!compare_exchange_weak(f, __oldval, __newval))
+        __newval = __oldval + v;
+}
+
+static void writeAddFloat(Float64* f, _Val<Float64> v){
+    alignas(Float64) unsigned char __buf[sizeof(Float64)];
+    auto* __dest = reinterpret_cast<_Val<Float64>*>(__buf);
+    __atomic_load(f, __dest, int(std::memory_order_relaxed));
+    _Val<Float64> __oldval = *__dest;
+    _Val<Float64> __newval = __oldval + v;
+    while (!compare_exchange_weak(f, __oldval, __newval))
+        __newval = __oldval + v;
+}
+
+// NOTE: This function does not fit for Floating
 using ab8 __attribute__((__may_alias__)) = uint8_t;
 using ab32 __attribute__((__may_alias__)) = uint32_t;
 using ab64 __attribute__((__may_alias__)) = uint64_t;
@@ -59,6 +93,16 @@ template <typename T> static void writeAdd(T* a, T b) {
         oldv = *a;
         newv = oldv + b;
     } while (!CAS(a, oldv, newv));
+}
+
+template<>
+void writeAdd(Float32* a, Float32 b) {
+    writeAddFloat(a, b);
+}
+
+template<>
+void writeAdd(Float64* a, Float64 b) {
+    writeAddFloat(a, b);
 }
 
 template <typename T> static T fetchAdd(T* a, T b) {
