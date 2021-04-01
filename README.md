@@ -1,7 +1,7 @@
-# CppProjectTemplate
+# ${CppProjectTemplate}
 
 ## Usage
-Change project name at the directory and the CMakeLists's `project(CppProjectTemplate)`.
+Change project name at the directory and the CMakeLists's `project(${CppProjectTemplate})`.
 
 ```shell script
 mkdir -p build && cd build

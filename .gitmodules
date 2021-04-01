@@ -10,3 +10,6 @@
 [submodule "contrib/fmt"]
 	path = contrib/fmt
 	url = https://github.com/fmtlib/fmt
+[submodule "contrib/numactl"]
+	path = contrib/numactl
+	url = https://github.com/numactl/numactl.git
