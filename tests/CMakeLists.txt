@@ -2,7 +2,10 @@ project(tests)
 add_subdirectory(googletest)
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -march=native -pthread -latomic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -latomic")
+if (NOT ARCH_ARM64)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -fopenmp")
+endif ()
 # adding the Google_Tests_run target
 add_executable(GenRandArray GenRandArray.cpp)
 add_executable(PSort PSortTest.cpp)
